@@ -8,9 +8,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize auth before other routes
   setupAuth(app);
 
-  app.get("/api/tickets", (req, res) => {
+  app.get("/api/tickets", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    const tickets = storage.getTicketsByUserId(req.user.id);
+    const tickets = await storage.getTicketsByUserId(req.user.id);
     res.json(tickets);
   });
 

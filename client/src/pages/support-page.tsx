@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { SupportTicket } from "@shared/schema";
 
 export default function SupportPage() {
-  const { data: tickets } = useQuery<SupportTicket[]>({ 
+  const { data: tickets = [] } = useQuery<SupportTicket[]>({ 
     queryKey: ["/api/tickets"]
   });
 
@@ -12,7 +12,7 @@ export default function SupportPage() {
     <div className="min-h-screen bg-background p-8">
       <div className="container mx-auto">
         <h1 className="text-3xl font-bold mb-8">Support Center</h1>
-        
+
         <div className="grid md:grid-cols-2 gap-8">
           <Card>
             <CardHeader>
@@ -28,11 +28,11 @@ export default function SupportPage() {
               <CardTitle>Your Tickets</CardTitle>
             </CardHeader>
             <CardContent>
-              {tickets?.length === 0 ? (
+              {tickets.length === 0 ? (
                 <p className="text-muted-foreground">No support tickets yet.</p>
               ) : (
                 <div className="space-y-4">
-                  {tickets?.map((ticket) => (
+                  {tickets.map((ticket) => (
                     <div key={ticket.id} className="p-4 border rounded-lg">
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="font-medium">{ticket.type}</h3>

@@ -9,9 +9,9 @@ export default function Footer() {
           {/* Company Info */}
           <div>
             <img 
-              src="/logo.png" 
+              src="/backchairlogo.png" 
               alt="The Back Chair Logo" 
-              className="h-12 mb-4"
+              className="h-16 mb-4"
             />
             <p className="text-gray-200">
               Revolutionizing comfort with advanced ergonomic technology.
@@ -48,14 +48,18 @@ export default function Footer() {
                 href="mailto:thebackchairapp@gmail.com" 
                 className="flex items-center gap-2 text-gray-200 hover:text-white transition-colors"
               >
-                <Mail className="h-8 w-8" />
+                <div className="w-8 h-8 flex items-center justify-center">
+                  <Mail className="w-full h-full" />
+                </div>
                 thebackchairapp@gmail.com
               </a>
               <a 
                 href="tel:+1-555-123-4567" 
                 className="flex items-center gap-2 text-gray-200 hover:text-white transition-colors"
               >
-                <Phone className="h-8 w-8" />
+                <div className="w-8 h-8 flex items-center justify-center">
+                  <Phone className="w-full h-full" />
+                </div>
                 (555) 123-4567
               </a>
             </div>

@@ -11,6 +11,7 @@ import { Redirect, useLocation } from "wouter";
 import { z } from "zod";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 // Schema for the initial validation step
 const validateSchema = z.object({
@@ -51,6 +52,7 @@ export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
   const [validatedIdentifier, setValidatedIdentifier] = useState<string | null>(null);
   const [identifierType, setIdentifierType] = useState<'email' | 'phone' | null>(null);
   const [loginMethod, setLoginMethod] = useState<LoginMethod>(null);
@@ -176,12 +178,27 @@ export default function AuthPage() {
       }
 
       if (response?.serverResponse.code === 200) {
+        // Create user object from profile details
+        const userProfile = response.result.profileDetails;
+        const user = {
+          id: parseInt(userProfile.encryptedUserId),
+          username: userProfile.email,
+          firstName: userProfile.firstName,
+          lastName: userProfile.lastName,
+          email: userProfile.email,
+          phone: userProfile.phone,
+          accessToken: userProfile.accessToken
+        };
+        
+        // Set the user in the query client cache
+        queryClient.setQueryData(["/api/user"], user);
+        
         toast({
           title: "Success",
           description: "Successfully verified",
-          duration: 2000, // 2 seconds
+          duration: 2000
         });
-        // Navigate to home page
+        
         setLocation("/");
       } else {
         toast({

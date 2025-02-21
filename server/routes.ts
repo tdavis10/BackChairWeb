@@ -5,6 +5,7 @@ import { insertTicketSchema } from "@shared/schema";
 import { storage } from "./storage";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Initialize auth before other routes
   setupAuth(app);
 
   app.get("/api/tickets", (req, res) => {
@@ -15,7 +16,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/tickets", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     const result = insertTicketSchema.safeParse({
       ...req.body,
       userId: req.user.id,

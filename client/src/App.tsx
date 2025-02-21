@@ -9,6 +9,7 @@ import SupportPage from "@/pages/support-page";
 import CheckoutPage from "@/pages/checkout-page";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "./lib/protected-route";
+import Footer from "@/components/footer";
 
 function Router() {
   return (
@@ -26,7 +27,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router />
+        <div className="flex min-h-screen flex-col">
+          <Router />
+          <Footer />
+        </div>
         <Toaster />
       </AuthProvider>
     </QueryClientProvider>

@@ -12,7 +12,11 @@ export default function HomePage() {
     <div className="min-h-screen bg-background">
       <header className="border-b">
         <nav className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">The Back Chair</h1>
+          <img 
+            src="../../public/logo.png" 
+            alt="The Back Chair Logo" 
+            className="h-16 mb-4"
+          />
           <div className="flex items-center gap-4">
             {user ? (
               <>

@@ -9,7 +9,7 @@ export default function Footer() {
           {/* Company Info */}
           <div>
             <img 
-              src="/backchairlogo.png" 
+              src="../../public/logo.png" 
               alt="The Back Chair Logo" 
               className="h-16 mb-4"
             />

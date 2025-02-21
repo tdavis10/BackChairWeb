@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,8 +23,11 @@ const validateSchema = z.object({
 });
 
 const loginSchema = z.object({
-  username: z.string().min(1, "Username is required"),
   password: z.string().min(1, "Password is required"),
+});
+
+const otpSchema = z.object({
+  otp: z.string().min(4, "Please enter the verification code"),
 });
 
 const registerSchema = z.object({
@@ -36,10 +39,15 @@ const registerSchema = z.object({
   phone: z.string().min(10, "Phone number is required"),
 });
 
+type LoginMethod = 'password' | 'otp' | null;
+
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const { toast } = useToast();
   const [validatedIdentifier, setValidatedIdentifier] = useState<string | null>(null);
+  const [identifierType, setIdentifierType] = useState<'email' | 'phone' | null>(null);
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>(null);
+  const [isResendingOtp, setIsResendingOtp] = useState(false);
 
   const validateForm = useForm({
     resolver: zodResolver(validateSchema),
@@ -51,8 +59,14 @@ export default function AuthPage() {
   const loginForm = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
       password: "",
+    },
+  });
+
+  const otpForm = useForm({
+    resolver: zodResolver(otpSchema),
+    defaultValues: {
+      otp: "",
     },
   });
 
@@ -70,6 +84,9 @@ export default function AuthPage() {
 
   const handleValidation = async (data: { emailOrPhone: string }) => {
     try {
+      const validationResult = WebService.validateEmailOrPhone(data.emailOrPhone);
+      setIdentifierType(validationResult.type);
+
       const response = await WebService.post('emailValidation', {
         email: data.emailOrPhone,
       });
@@ -78,7 +95,7 @@ export default function AuthPage() {
         setValidatedIdentifier(data.emailOrPhone);
         toast({
           title: "Validation successful",
-          description: "Please enter your password to continue",
+          description: "Please choose how you'd like to sign in",
         });
       } else {
         toast({
@@ -94,6 +111,80 @@ export default function AuthPage() {
         variant: "destructive",
       });
     }
+  };
+
+  const handleSendOTP = async () => {
+    try {
+      setIsResendingOtp(true);
+      let response;
+
+      if (identifierType === "email") {
+        response = await WebService.post('resendOTP', { 
+          email: validatedIdentifier 
+        });
+      } else if (identifierType === "phone") {
+        response = await WebService.post('resendOTPbySms', { 
+          email: 'tanner.davis002@gmail.com'  // TODO: Update this when backend is ready
+        });
+      }
+
+      if (response?.serverResponse.code === 200) {
+        setLoginMethod('otp');
+        toast({
+          title: "Code sent",
+          description: `We've sent a verification code to your ${identifierType}`,
+        });
+      } else {
+        throw new Error(response?.serverResponse.message || 'Failed to send code');
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsResendingOtp(false);
+    }
+  };
+
+  const handleVerifyOTP = async (data: { otp: string }) => {
+    try {
+      // TODO: Implement OTP verification endpoint
+      const response = await WebService.post('verifyOTP', {
+        email: validatedIdentifier,
+        otp: data.otp,
+      });
+
+      if (response.serverResponse.code === 200) {
+        // Handle successful verification
+        toast({
+          title: "Success",
+          description: "Successfully verified",
+        });
+      } else {
+        toast({
+          title: "Verification failed",
+          description: response.serverResponse.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to verify code. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const resetLogin = () => {
+    setValidatedIdentifier(null);
+    setLoginMethod(null);
+    setIdentifierType(null);
+    validateForm.reset();
+    loginForm.reset();
+    otpForm.reset();
   };
 
   if (user) {
@@ -140,7 +231,32 @@ export default function AuthPage() {
                       </Button>
                     </form>
                   </Form>
-                ) : (
+                ) : !loginMethod ? (
+                  <div className="space-y-4">
+                    <Button 
+                      className="w-full" 
+                      onClick={() => setLoginMethod('password')}
+                    >
+                      Continue with Password
+                    </Button>
+                    <Button 
+                      className="w-full" 
+                      variant="outline"
+                      onClick={handleSendOTP}
+                      disabled={isResendingOtp}
+                    >
+                      {isResendingOtp ? "Sending code..." : "Send me a code"}
+                    </Button>
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      className="w-full"
+                      onClick={resetLogin}
+                    >
+                      Use a different email/phone
+                    </Button>
+                  </div>
+                ) : loginMethod === 'password' ? (
                   <Form {...loginForm}>
                     <form onSubmit={loginForm.handleSubmit((data) => loginMutation.mutate(data))} className="space-y-4">
                       <FormField
@@ -163,9 +279,47 @@ export default function AuthPage() {
                         type="button" 
                         variant="ghost" 
                         className="w-full"
-                        onClick={() => setValidatedIdentifier(null)}
+                        onClick={() => setLoginMethod(null)}
                       >
-                        Use a different email/phone
+                        Try another method
+                      </Button>
+                    </form>
+                  </Form>
+                ) : (
+                  <Form {...otpForm}>
+                    <form onSubmit={otpForm.handleSubmit(handleVerifyOTP)} className="space-y-4">
+                      <FormField
+                        control={otpForm.control}
+                        name="otp"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Verification Code</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Enter verification code" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" className="w-full">
+                        Verify Code
+                      </Button>
+                      <Button 
+                        type="button"
+                        variant="outline"
+                        className="w-full"
+                        onClick={handleSendOTP}
+                        disabled={isResendingOtp}
+                      >
+                        {isResendingOtp ? "Sending..." : "Resend Code"}
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="ghost" 
+                        className="w-full"
+                        onClick={() => setLoginMethod(null)}
+                      >
+                        Try another method
                       </Button>
                     </form>
                   </Form>

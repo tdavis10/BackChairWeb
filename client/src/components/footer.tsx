@@ -8,7 +8,11 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Company Info */}
           <div>
-            <h3 className="text-xl font-bold mb-4">The Back Chair</h3>
+            <img 
+              src="/logo.png" 
+              alt="The Back Chair Logo" 
+              className="h-12 mb-4"
+            />
             <p className="text-gray-200">
               Revolutionizing comfort with advanced ergonomic technology.
             </p>
@@ -44,14 +48,14 @@ export default function Footer() {
                 href="mailto:thebackchairapp@gmail.com" 
                 className="flex items-center gap-2 text-gray-200 hover:text-white transition-colors"
               >
-                <Mail className="h-5 w-5" />
+                <Mail className="h-6 w-6" />
                 thebackchairapp@gmail.com
               </a>
               <a 
                 href="tel:+1-555-123-4567" 
                 className="flex items-center gap-2 text-gray-200 hover:text-white transition-colors"
               >
-                <Phone className="h-5 w-5" />
+                <Phone className="h-6 w-6" />
                 (555) 123-4567
               </a>
             </div>

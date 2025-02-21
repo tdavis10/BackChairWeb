@@ -95,9 +95,10 @@ export default function AuthPage() {
   const handleValidation = async (data: { emailOrPhone: string }) => {
     try {
       const validationResult = WebService.validateEmailOrPhone(data.emailOrPhone);
+      console.log('Validation type:', validationResult.type);
       setIdentifierType(validationResult.type);
 
-      const endpoint = identifierType === 'phone' ? 'phoneValidation' : 'emailValidation';
+      const endpoint = validationResult.type === 'phone' ? 'phoneValidation' : 'emailValidation';
       const payload = identifierType === 'phone' ? {
         phone: data.emailOrPhone
       } : {

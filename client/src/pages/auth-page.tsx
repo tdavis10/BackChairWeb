@@ -185,6 +185,7 @@ export default function AuthPage() {
         response = await WebService.post("loginWithPhoneOTP", {
           phone: validatedIdentifier,
           otp: data.otp,
+          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
         });
       }
 

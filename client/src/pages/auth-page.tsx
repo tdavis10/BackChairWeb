@@ -97,9 +97,14 @@ export default function AuthPage() {
       const validationResult = WebService.validateEmailOrPhone(data.emailOrPhone);
       setIdentifierType(validationResult.type);
 
-      const response = await WebService.post('emailValidation', {
-        email: data.emailOrPhone,
-      });
+      const endpoint = identifierType === 'phone' ? 'phoneValidation' : 'emailValidation';
+      const payload = identifierType === 'phone' ? {
+        phone: data.emailOrPhone
+      } : {
+        email: data.emailOrPhone
+      };
+      
+      const response = await WebService.post(endpoint, payload);
 
       if (response.serverResponse.code === 200) {
         setValidatedIdentifier(data.emailOrPhone);

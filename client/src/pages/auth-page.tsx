@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { WebService } from "@/lib/web-service";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { Redirect } from "wouter";
+import { Redirect, useLocation } from "wouter";
 import { z } from "zod";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -41,13 +41,21 @@ const registerSchema = z.object({
 
 type LoginMethod = 'password' | 'otp' | null;
 
+type ProfileDetails = {
+  email: string;
+  phone: string;
+  accessToken?: string;
+};
+
 export default function AuthPage() {
   const { user, loginMutation, registerMutation } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [validatedIdentifier, setValidatedIdentifier] = useState<string | null>(null);
   const [identifierType, setIdentifierType] = useState<'email' | 'phone' | null>(null);
   const [loginMethod, setLoginMethod] = useState<LoginMethod>(null);
   const [isResendingOtp, setIsResendingOtp] = useState(false);
+  const [profileDetails, setProfileDetails] = useState<ProfileDetails | null>(null);
 
   const validateForm = useForm({
     resolver: zodResolver(validateSchema),
@@ -93,6 +101,9 @@ export default function AuthPage() {
 
       if (response.serverResponse.code === 200) {
         setValidatedIdentifier(data.emailOrPhone);
+        if (response.result?.profileDetails) {
+          setProfileDetails(response.result.profileDetails);
+        }
         toast({
           title: "Validation successful",
           description: "Please choose how you'd like to sign in",
@@ -124,7 +135,7 @@ export default function AuthPage() {
         });
       } else if (identifierType === "phone") {
         response = await WebService.post('resendOTPbySms', { 
-          email: 'tanner.davis002@gmail.com'  // TODO: Update this when backend is ready
+          email: profileDetails?.email || 'tanner.davis002@gmail.com'
         });
       }
 
@@ -140,7 +151,7 @@ export default function AuthPage() {
     } catch (error) {
       toast({
         title: "Error",
-        description: error.message,
+        description: (error as Error).message,
         variant: "destructive",
       });
     } finally {
@@ -150,22 +161,31 @@ export default function AuthPage() {
 
   const handleVerifyOTP = async (data: { otp: string }) => {
     try {
-      // TODO: Implement OTP verification endpoint
-      const response = await WebService.post('verifyOTP', {
-        email: validatedIdentifier,
-        otp: data.otp,
-      });
+      let response;
 
-      if (response.serverResponse.code === 200) {
-        // Handle successful verification
+      if (identifierType === "email") {
+        response = await WebService.post("verifyOTP", {
+          email: profileDetails?.email || validatedIdentifier,
+          otp: data.otp,
+        });
+      } else if (identifierType === "phone") {
+        response = await WebService.post("loginWithPhoneOTP", {
+          phone: profileDetails?.phone,
+          otp: data.otp,
+        });
+      }
+
+      if (response?.serverResponse.code === 200) {
         toast({
           title: "Success",
           description: "Successfully verified",
         });
+        // Navigate to home page
+        setLocation("/");
       } else {
         toast({
           title: "Verification failed",
-          description: response.serverResponse.message,
+          description: response?.serverResponse.message,
           variant: "destructive",
         });
       }
@@ -182,6 +202,7 @@ export default function AuthPage() {
     setValidatedIdentifier(null);
     setLoginMethod(null);
     setIdentifierType(null);
+    setProfileDetails(null);
     validateForm.reset();
     loginForm.reset();
     otpForm.reset();

@@ -183,7 +183,7 @@ export default function AuthPage() {
         });
       } else if (identifierType === "phone") {
         response = await WebService.post("loginWithPhoneOTP", {
-          phone: profileDetails?.phone,
+          phone: validatedIdentifier,
           otp: data.otp,
         });
       }

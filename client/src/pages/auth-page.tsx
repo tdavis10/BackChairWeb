@@ -179,6 +179,7 @@ export default function AuthPage() {
         toast({
           title: "Success",
           description: "Successfully verified",
+          duration: 2000, // 2 seconds
         });
         // Navigate to home page
         setLocation("/");

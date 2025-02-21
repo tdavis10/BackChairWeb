@@ -1,0 +1,112 @@
+<?php
+include_once('generate_access_token.php');
+
+$phone = $data['phone'];
+$otp = $data['otp'];
+$timeZone = $_POST['timeZone'];
+
+if( empty($phone) && empty($otp) ){
+	$phone = $_POST['phone'];
+	$otp = $_POST['otp'];
+}
+
+if( empty($phone) && empty($otp) ){
+	$msg = 'Phone number and Verification code are required.';
+	$success = false;
+	$serverResponse = array("code" => 600, 'message'=> $msg, 'isSuccess'=> $success);
+	echo json_encode(array("serverResponse" => $serverResponse));
+	exit();
+}
+
+if(!empty($data['FCMToken'])){
+	$device_type = $data['OSType'];
+	$device_token = $data['FCMToken'];
+}
+
+if(!empty($_POST['FCMToken'])){
+	$device_type = $_POST['OSType'];
+	$device_token = $_POST['FCMToken'];
+}
+
+$args = array(
+		        'role'          => 'company',
+		        'meta_query'    => array(
+		            array( 
+		                'key'     => '_phone',
+		                'value'   => $phone,
+		                'compare' => '='
+		            ),
+		        )
+		    ); 
+
+$usersQuery = new WP_User_Query($args);
+$usersResult = $usersQuery->get_results();
+$usersResultCount = count($usersResult);
+
+if ($usersResultCount > 0) {
+	foreach ($usersResult as $userIdsQueries) {
+		$user_id = $userIdsQueries->ID;
+		$email_id = $userIdsQueries->user_email;
+		break;
+	}
+}else{
+	$msg = 'Sorry,invalid phone number.';
+	$success = false;
+	$serverResponse = array("code" => 600, 'message'=> $msg, 'isSuccess'=> $success);
+	echo json_encode(array("serverResponse" => $serverResponse));
+	exit();
+}
+
+$orgOtp = (string)get_user_meta($user_id, '_phone_verified_otp' ,true);
+
+if($orgOtp == $otp){
+
+	if(!empty($timeZone)){
+		update_user_meta( $user_id, '_device_time_zone', $timeZone);
+	}
+
+	if(!empty($device_type) && !empty($device_token)){			
+		update_user_meta( $user_id, '_device_token_id', $device_token);
+		update_user_meta( $user_id, '_device_os_name', $device_type);
+		$device_token = get_user_meta($user_id,'_device_token_id',true);
+		$device_type = get_user_meta($user_id,'_device_os_name',true);
+	}
+
+	$access_token_val = get_rand_alphanumeric(8);
+	$access_token = $access_token_val.'_'.$user_id;
+	update_user_meta( $user_id, '_access_token', $access_token);
+	$get_access_token = get_user_meta($user_id,'_access_token',true);
+
+	$_is_first_time = get_user_meta($user_id,'_is_first_time',true);
+	if(empty($_is_first_time)){
+		$_is_first_time = 0;
+	}
+	$_is_first_time = $_is_first_time + 1;
+	update_user_meta( $user_id, '_is_first_time', $_is_first_time);
+	$_is_first_time = get_user_meta($user_id,'_is_first_time',true);
+
+	$profileDetails = profileDetails($user_id);
+
+	$resultRes = array('profileDetails'=>$profileDetails);
+
+	$msg = 'Login Successfull.';
+	$success = true;
+	
+	$serverResponse = array("code" => 200, 'message'=> $msg , 'isSuccess'=> $success);
+	echo json_encode(array("serverResponse" => $serverResponse , 'result'=> $resultRes));
+
+	exit();
+
+
+}else{
+
+	$msg = 'Sorry,Invalid OTP.';
+	$success = false;
+	$serverResponse = array("code" => 600, 'message'=> $msg, 'isSuccess'=> $success);
+	echo json_encode(array("serverResponse" => $serverResponse));
+	exit();
+}
+
+
+
+

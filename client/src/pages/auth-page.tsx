@@ -97,15 +97,18 @@ export default function AuthPage() {
       const validationResult = WebService.validateEmailOrPhone(data.emailOrPhone);
       console.log('Validation type:', validationResult.type);
       setIdentifierType(validationResult.type);
-
-      const endpoint = validationResult.type === 'phone' ? 'phoneValidation' : 'emailValidation';
-      const payload = identifierType === 'phone' ? {
-        phone: data.emailOrPhone
-      } : {
-        email: data.emailOrPhone
-      };
-      
-      const response = await WebService.post(endpoint, payload);
+      let response;
+      if (validationResult.type === 'email') {
+        setIdentifierType("email")
+        response = await WebService.post('emailValidation', {
+          email: data.emailOrPhone,
+        });
+      } else if (validationResult.type === 'phone') {
+        setIdentifierType("phone")
+        response = await WebService.post('phoneValidation', {
+          phone: data.emailOrPhone,
+        });
+      }
 
       if (response.serverResponse.code === 200) {
         setValidatedIdentifier(data.emailOrPhone);
@@ -170,6 +173,8 @@ export default function AuthPage() {
   const handleVerifyOTP = async (data: { otp: string }) => {
     try {
       let response;
+
+      console.log('data', data.otp, validatedIdentifier, identifierType, profileDetails?.phone);
 
       if (identifierType === "email") {
         response = await WebService.post("verifyOTP", {

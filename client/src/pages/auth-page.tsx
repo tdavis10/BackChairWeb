@@ -218,7 +218,7 @@ export default function AuthPage() {
         <Card className="w-full max-w-md">
           <CardHeader>
             <img 
-              src="/backchairlogo.png" 
+              src="../../public/logo.png" 
               alt="The Back Chair Logo" 
               className="h-16 mb-4 mx-auto"
             />

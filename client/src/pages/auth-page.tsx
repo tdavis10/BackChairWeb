@@ -35,7 +35,7 @@ const registerSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email address"),
-  phone: z.string().min(10, "Phone number is required"),
+  phone: z.string().min(10, "Phone number must be at least 10 digits"),
 });
 
 const registerOtpSchema = z.object({
@@ -584,15 +584,15 @@ export default function AuthPage() {
                         )}
                       />
                       <Button type="submit" className="w-full">
-                        Create Password
+                        Create Password & Login
                       </Button>
                       <Button 
                         type="button" 
                         variant="outline" 
                         className="w-full"
-                        onClick={() => setLocation("/")}
+                        onClick={() => setLocation("/login")}
                       >
-                        Skip Password Creation
+                        Skip & Login Now
                       </Button>
                     </form>
                   </Form>

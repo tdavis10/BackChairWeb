@@ -174,17 +174,24 @@ export default function AuthPage() {
     try {
       let response;
 
-      console.log('data', data.otp, validatedIdentifier, identifierType, profileDetails?.phone);
+      // ✅ Convert OTP to an integer like on mobile
+      const otpAsInt = parseInt(data.otp, 10);
+      if (isNaN(otpAsInt)) {
+        console.error('Invalid OTP');
+        return;
+      }
+
+      console.log('Web OTP Sent:', otpAsInt, typeof otpAsInt, validatedIdentifier, identifierType);
 
       if (identifierType === "email") {
         response = await WebService.post("verifyOTP", {
           email: profileDetails?.email || validatedIdentifier,
-          otp: data.otp,
+          otp: otpAsInt,
         });
       } else if (identifierType === "phone") {
         response = await WebService.post("loginWithPhoneOTP", {
           phone: validatedIdentifier,
-          otp: data.otp,
+          otp: otpAsInt,
           timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
         });
       }

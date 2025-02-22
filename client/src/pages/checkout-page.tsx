@@ -32,12 +32,12 @@ export default function CheckoutPage() {
                         </p>
                       </div>
                     </div>
-                    <p className="font-semibold">$999.00</p>
+                    <p className="font-semibold">$1,999.00</p>
                   </div>
                   <div className="border-t pt-4">
                     <div className="flex justify-between mb-2">
                       <span>Subtotal</span>
-                      <span>$999.00</span>
+                      <span>$1,999.00</span>
                     </div>
                     <div className="flex justify-between mb-2">
                       <span>Shipping</span>
@@ -45,7 +45,7 @@ export default function CheckoutPage() {
                     </div>
                     <div className="flex justify-between font-semibold text-lg mt-4 border-t pt-4">
                       <span>Total</span>
-                      <span>$999.00</span>
+                      <span>$1,999.00</span>
                     </div>
                   </div>
                 </CardContent>
@@ -88,7 +88,7 @@ export default function CheckoutPage() {
                 <CardContent>
                   <CheckoutForm 
                     userEmail={user?.email ?? ''}
-                    amount={99900} // in cents
+                    amount={199900} // in cents
                   />
                 </CardContent>
               </Card>

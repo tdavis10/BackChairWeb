@@ -288,6 +288,7 @@ export default function AuthPage() {
           });
           if (response.serverResponse.code === 200) {
               setRegistrationStep('password');
+              createPasswordForm.reset();
               toast({ title: 'OTP Verified', description: 'Please create a password' });
           } else {
               toast({ title: 'OTP Verification Failed', description: response.serverResponse.message, variant: 'destructive' });
@@ -590,7 +591,7 @@ export default function AuthPage() {
                         type="button" 
                         variant="outline" 
                         className="w-full"
-                        onClick={() => setLocation("/login")}
+                        onClick={() => setLocation("/")}
                       >
                         Skip & Login Now
                       </Button>

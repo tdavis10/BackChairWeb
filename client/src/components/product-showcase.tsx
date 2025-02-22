@@ -49,7 +49,7 @@ export default function ProductShowcase() {
             </div>
             <Link href="/checkout">
               <Button size="lg" className="mt-8">
-                Order Now - $999
+                Order Now - $1999
               </Button>
             </Link>
           </div>

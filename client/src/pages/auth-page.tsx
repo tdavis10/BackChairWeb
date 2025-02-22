@@ -40,6 +40,16 @@ const registerSchema = z.object({
   phone: z.string().min(10, "Phone number is required"),
 });
 
+const registerOtpSchema = z.object({
+  otp: z.string().min(4, "Please enter the verification code"),
+});
+
+const createPasswordSchema = z.object({
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Password must be at least 6 characters").refine((val) => val === registerForm.getValues().password, "Passwords must match"),
+});
+
+
 type LoginMethod = 'password' | 'otp' | null;
 
 type ProfileDetails = {
@@ -58,6 +68,8 @@ export default function AuthPage() {
   const [loginMethod, setLoginMethod] = useState<LoginMethod>(null);
   const [isResendingOtp, setIsResendingOtp] = useState(false);
   const [profileDetails, setProfileDetails] = useState<ProfileDetails | null>(null);
+  const [registrationStep, setRegistrationStep] = useState<'initial' | 'otp' | 'password'>('initial'); // Track registration steps
+
 
   const validateForm = useForm({
     resolver: zodResolver(validateSchema),
@@ -89,6 +101,21 @@ export default function AuthPage() {
       lastName: "",
       email: "",
       phone: "",
+    },
+  });
+
+  const registerOtpForm = useForm({
+    resolver: zodResolver(registerOtpSchema),
+    defaultValues: {
+      otp: "",
+    },
+  });
+
+  const createPasswordForm = useForm({
+    resolver: zodResolver(createPasswordSchema),
+    defaultValues: {
+      password: "",
+      confirmPassword: "",
     },
   });
 
@@ -190,8 +217,7 @@ export default function AuthPage() {
         response = await WebService.post("verifyOTP", {
           email: profileDetails?.email,
           otp: otpAsString,
-      }
-      );
+        });
       }
 
       if (response?.serverResponse.code === 200) {
@@ -206,16 +232,16 @@ export default function AuthPage() {
           phone: userProfile.phone,
           accessToken: userProfile.accessToken
         };
-        
+
         // Set the user in the query client cache
         queryClient.setQueryData(["/api/user"], user);
-        
+
         toast({
           title: "Success",
           description: "Successfully verified",
           duration: 2000
         });
-        
+
         setLocation("/");
       } else {
         toast({
@@ -233,6 +259,65 @@ export default function AuthPage() {
     }
   };
 
+  const handleRegister = async (data: z.infer<typeof registerSchema>) => {
+    try {
+      const cleanPhone = cleanPhoneNumber(data.phone); // Assuming cleanPhoneNumber function exists
+      const response = await WebService.post("signUp", {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        password: "", // Password will be set later
+        phone: cleanPhone,
+        phoneCountryCode: data.phoneCountryCode, // Assuming these fields are in data
+        phoneCountryNameShort: data.phoneCountryNameShort, // Assuming these fields are in data
+      });
+      if (response.serverResponse.code === 200) {
+        setRegistrationStep('otp');
+        toast({ title: 'OTP Sent', description: 'Check your phone for the verification code' });
+      } else {
+        toast({ title: 'Registration Failed', description: response.serverResponse.message, variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Error', description: 'Registration failed. Please try again.', variant: 'destructive' });
+    }
+  };
+
+  const handleRegisterOTPVerification = async (data: z.infer<typeof registerOtpSchema>) => {
+      try {
+          const response = await WebService.post("verifyOTP", {
+              email: registerForm.getValues().email,
+              otp: data.otp
+          });
+          if (response.serverResponse.code === 200) {
+              setRegistrationStep('password');
+              toast({ title: 'OTP Verified', description: 'Please create a password' });
+          } else {
+              toast({ title: 'OTP Verification Failed', description: response.serverResponse.message, variant: 'destructive' });
+          }
+      } catch (error) {
+          toast({ title: 'Error', description: 'OTP verification failed. Please try again.', variant: 'destructive' });
+      }
+  };
+
+  const handlePasswordCreation = async (data: z.infer<typeof createPasswordSchema>) => {
+      try {
+          const resetResponse = await WebService.post('addPassword', {
+              email: registerForm.getValues().email,
+              password: data.password,
+              otp: registerOtpForm.getValues().otp,
+          });
+          if (resetResponse.serverResponse.code === 200) {
+              toast({ title: 'Password Created', description: 'Successfully created password.' });
+              setLocation("/"); // Redirect to home page
+          } else {
+              toast({ title: 'Password Creation Failed', description: resetResponse.serverResponse.message, variant: 'destructive' });
+          }
+      } catch (error) {
+          toast({ title: 'Error', description: 'Password creation failed. Please try again.', variant: 'destructive' });
+      }
+  };
+
+
   const resetLogin = () => {
     setValidatedIdentifier(null);
     setLoginMethod(null);
@@ -241,6 +326,10 @@ export default function AuthPage() {
     validateForm.reset();
     loginForm.reset();
     otpForm.reset();
+    registerForm.reset();
+    registerOtpForm.reset();
+    createPasswordForm.reset();
+    setRegistrationStep('initial');
   };
 
   if (user) {
@@ -383,8 +472,9 @@ export default function AuthPage() {
               </TabsContent>
 
               <TabsContent value="register">
+                {registrationStep === 'initial' ? (
                 <Form {...registerForm}>
-                  <form onSubmit={registerForm.handleSubmit((data) => registerMutation.mutate(data))} className="space-y-4">
+                  <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-4">
                     <FormField
                       control={registerForm.control}
                       name="username"
@@ -465,11 +555,75 @@ export default function AuthPage() {
                         </FormItem>
                       )}
                     />
-                    <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
-                      {registerMutation.isPending ? "Creating account..." : "Register"}
+                    <Button type="submit" className="w-full">
+                      Continue
                     </Button>
                   </form>
                 </Form>
+                ) : registrationStep === 'otp' ? (
+                  <Form {...registerOtpForm}>
+                    <form onSubmit={registerOtpForm.handleSubmit(handleRegisterOTPVerification)} className="space-y-4">
+                      <FormField
+                        control={registerOtpForm.control}
+                        name="otp"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Verification Code</FormLabel>
+                            <FormControl>
+                              <Input {...field} placeholder="Enter verification code" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" className="w-full">
+                        Verify Code
+                      </Button>
+                    </form>
+                  </Form>
+                ) : (
+                  <Form {...createPasswordForm}>
+                    <form onSubmit={createPasswordForm.handleSubmit(handlePasswordCreation)} className="space-y-4">
+                      <FormField
+                        control={createPasswordForm.control}
+                        name="password"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Password</FormLabel>
+                            <FormControl>
+                              <Input type="password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={createPasswordForm.control}
+                        name="confirmPassword"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Confirm Password</FormLabel>
+                            <FormControl>
+                              <Input type="password" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <Button type="submit" className="w-full">
+                        Create Password
+                      </Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => setLocation("/")}
+                      >
+                        Skip Password Creation
+                      </Button>
+                    </form>
+                  </Form>
+                )}
               </TabsContent>
             </Tabs>
           </CardContent>
@@ -484,3 +638,6 @@ export default function AuthPage() {
     </div>
   );
 }
+
+// Placeholder - Replace with your actual implementation
+const cleanPhoneNumber = (phoneNumber: string) => phoneNumber;

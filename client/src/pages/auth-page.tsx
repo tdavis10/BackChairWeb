@@ -67,6 +67,7 @@ export default function AuthPage() {
   const [isResendingOtp, setIsResendingOtp] = useState(false);
   const [profileDetails, setProfileDetails] = useState<ProfileDetails | null>(null);
   const [registrationStep, setRegistrationStep] = useState<'initial' | 'otp' | 'password'>('initial'); // Track registration steps
+  const [isLoading, setIsLoading] = useState(false); // Add loading state
 
 
   const validateForm = useForm({
@@ -118,6 +119,7 @@ export default function AuthPage() {
   });
 
   const handleValidation = async (data: { emailOrPhone: string }) => {
+    setIsLoading(true); // Set loading state
     try {
       const validationResult = WebService.validateEmailOrPhone(data.emailOrPhone);
       console.log('Validation type:', validationResult.type);
@@ -157,10 +159,13 @@ export default function AuthPage() {
         description: "Failed to validate email/phone. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false); // Reset loading state
     }
   };
 
   const handleSendOTP = async () => {
+    setIsLoading(true); // Set loading state
     try {
       setIsResendingOtp(true);
       let response;
@@ -192,10 +197,12 @@ export default function AuthPage() {
       });
     } finally {
       setIsResendingOtp(false);
+      setIsLoading(false); // Reset loading state
     }
   };
 
   const handleVerifyOTP = async (data: { otp: string }) => {
+    setIsLoading(true); // Set loading state
     try {
       let response;
 
@@ -254,10 +261,13 @@ export default function AuthPage() {
         description: "Failed to verify code. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false); // Reset loading state
     }
   };
 
   const handleRegister = async (data: z.infer<typeof registerSchema>) => {
+    setIsLoading(true); // Set loading state
     try {
       const cleanPhone = cleanPhoneNumber(data.phone); // Assuming cleanPhoneNumber function exists
       const response = await WebService.post("signUp", {
@@ -277,43 +287,51 @@ export default function AuthPage() {
       }
     } catch (error) {
       toast({ title: 'Error', description: 'Registration failed. Please try again.', variant: 'destructive' });
+    } finally {
+      setIsLoading(false); // Reset loading state
     }
   };
 
   const handleRegisterOTPVerification = async (data: z.infer<typeof registerOtpSchema>) => {
-      try {
-          const response = await WebService.post("verifyOTP", {
-              email: registerForm.getValues().email,
-              otp: data.otp
-          });
-          if (response.serverResponse.code === 200) {
-              setRegistrationStep('password');
-              createPasswordForm.reset();
-              toast({ title: 'OTP Verified', description: 'Please create a password' });
-          } else {
-              toast({ title: 'OTP Verification Failed', description: response.serverResponse.message, variant: 'destructive' });
-          }
-      } catch (error) {
-          toast({ title: 'Error', description: 'OTP verification failed. Please try again.', variant: 'destructive' });
-      }
+    setIsLoading(true); // Set loading state
+    try {
+        const response = await WebService.post("verifyOTP", {
+            email: registerForm.getValues().email,
+            otp: data.otp
+        });
+        if (response.serverResponse.code === 200) {
+            setRegistrationStep('password');
+            createPasswordForm.reset();
+            toast({ title: 'OTP Verified', description: 'Please create a password' });
+        } else {
+            toast({ title: 'OTP Verification Failed', description: response.serverResponse.message, variant: 'destructive' });
+        }
+    } catch (error) {
+        toast({ title: 'Error', description: 'OTP verification failed. Please try again.', variant: 'destructive' });
+    } finally {
+      setIsLoading(false); // Reset loading state
+    }
   };
 
   const handlePasswordCreation = async (data: z.infer<typeof createPasswordSchema>) => {
-      try {
-          const resetResponse = await WebService.post('addPassword', {
-              email: registerForm.getValues().email,
-              password: data.password,
-              otp: registerOtpForm.getValues().otp,
-          });
-          if (resetResponse.serverResponse.code === 200) {
-              toast({ title: 'Password Created', description: 'Successfully created password.' });
-              setLocation("/"); // Redirect to home page
-          } else {
-              toast({ title: 'Password Creation Failed', description: resetResponse.serverResponse.message, variant: 'destructive' });
-          }
-      } catch (error) {
-          toast({ title: 'Error', description: 'Password creation failed. Please try again.', variant: 'destructive' });
-      }
+    setIsLoading(true); // Set loading state
+    try {
+        const resetResponse = await WebService.post('addPassword', {
+            email: registerForm.getValues().email,
+            password: data.password,
+            otp: registerOtpForm.getValues().otp,
+        });
+        if (resetResponse.serverResponse.code === 200) {
+            toast({ title: 'Password Created', description: 'Successfully created password.' });
+            setLocation("/"); // Redirect to home page
+        } else {
+            toast({ title: 'Password Creation Failed', description: resetResponse.serverResponse.message, variant: 'destructive' });
+        }
+    } catch (error) {
+        toast({ title: 'Error', description: 'Password creation failed. Please try again.', variant: 'destructive' });
+    } finally {
+      setIsLoading(false); // Reset loading state
+    }
   };
 
 
@@ -329,6 +347,24 @@ export default function AuthPage() {
     registerOtpForm.reset();
     createPasswordForm.reset();
     setRegistrationStep('initial');
+  };
+
+  const handleSkipAndLogin = async () => {
+    setIsLoading(true);
+    try {
+      // Implement logic to create a user and then redirect
+      const response = await WebService.post("createAnonymousUser"); //replace with your endpoint
+      if (response.serverResponse.code === 200) {
+        toast({ title: 'User Created', description: 'Successfully created anonymous user' });
+        setLocation("/");
+      } else {
+        toast({ title: 'User Creation Failed', description: response.serverResponse.message, variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Error', description: 'User creation failed. Please try again.', variant: 'destructive' });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (user) {
@@ -370,8 +406,8 @@ export default function AuthPage() {
                           </FormItem>
                         )}
                       />
-                      <Button type="submit" className="w-full">
-                        Continue
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? "Verifying..." : "Continue"}
                       </Button>
                     </form>
                   </Form>
@@ -445,8 +481,8 @@ export default function AuthPage() {
                           </FormItem>
                         )}
                       />
-                      <Button type="submit" className="w-full">
-                        Verify Code
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? "Verifying..." : "Verify Code"}
                       </Button>
                       <Button 
                         type="button"
@@ -474,7 +510,7 @@ export default function AuthPage() {
                 {registrationStep === 'initial' ? (
                 <Form {...registerForm}>
                   <form onSubmit={registerForm.handleSubmit(handleRegister)} className="space-y-4">
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={registerForm.control}
@@ -529,8 +565,8 @@ export default function AuthPage() {
                         </FormItem>
                       )}
                     />
-                    <Button type="submit" className="w-full">
-                      Continue
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? "Registering..." : "Continue"}
                     </Button>
                   </form>
                 </Form>
@@ -550,8 +586,8 @@ export default function AuthPage() {
                           </FormItem>
                         )}
                       />
-                      <Button type="submit" className="w-full">
-                        Verify Code
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? "Verifying..." : "Verify Code"}
                       </Button>
                     </form>
                   </Form>
@@ -584,16 +620,17 @@ export default function AuthPage() {
                           </FormItem>
                         )}
                       />
-                      <Button type="submit" className="w-full">
-                        Create Password & Login
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? "Creating..." : "Create Password & Login"}
                       </Button>
                       <Button 
                         type="button" 
                         variant="outline" 
                         className="w-full"
-                        onClick={() => setLocation("/")}
+                        onClick={handleSkipAndLogin}
+                        disabled={isLoading}
                       >
-                        Skip & Login Now
+                        {isLoading ? "Skipping..." : "Skip & Login Now"}
                       </Button>
                     </form>
                   </Form>

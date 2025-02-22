@@ -266,10 +266,10 @@ export default function AuthPage() {
         email: data.email,
         password: "", // Password will be set later
         phone: cleanPhone,
-        phoneCountryCode: data.phoneCountryCode, // Assuming these fields are in data
-        phoneCountryNameShort: data.phoneCountryNameShort, // Assuming these fields are in data
+        phoneCountryCode: "1", // Assuming these fields are in data
+        phoneCountryNameShort: "US", // Assuming these fields are in data
       });
-      if (response.serverResponse.code === 200) {
+      if (response.serverResponse.code === 602) {
         setRegistrationStep('otp');
         toast({ title: 'OTP Sent', description: 'Check your phone for the verification code' });
       } else {
